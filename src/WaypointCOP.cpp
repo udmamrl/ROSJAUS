@@ -87,7 +87,7 @@ bool done = 0;
 unsigned int t1;
 int state = 0;
 bool discovered = false;
-
+unsigned short Active_element;
 unsigned int COP_id ;
 double robot_x,robot_y,robot_yaw,robot_v,robot_w;
 
@@ -645,6 +645,8 @@ void ProcessJausMessage(long handle, unsigned int client_id,unsigned int Message
     case ReportIdentification             :
       printf("Message: Report Identification              received\r\n");
       //done = 1;
+	  //usleep(10000000); // 1 second delay
+	  // TODO decode ID here
       if(state ==1) state++;
       break;
     case ReportVelocityState             :
@@ -727,14 +729,18 @@ void ProcessJausMessage(long handle, unsigned int client_id,unsigned int Message
       break; 
     case JAUS_ID_ReportElementList        :
       printf("Message: ReportElementList         received\r\n"); 
+      // TODO Decode message here 
       state++;
       break; 
     case JAUS_ID_ReportElementCount       :
       printf("Message: ReportElementCount        received\r\n"); 
+      // TODO Decode message here 
       state++;
       break; 
     case JAUS_ID_ReportActiveElement      :
       printf("Message: ReportActiveElement       received\r\n"); 
+      // TODO Decode message here 
+      Active_element=(unsigned short)(buffer[3]&0xFF)<<8 |  (unsigned short)(buffer[2]&0xFF);
       state++;
       break; 
     case JAUS_ID_ReportLocalWaypoint        :
@@ -978,7 +984,7 @@ gotoxy(1,1);
 
   	printf("COP   ID:%08X (%d-%d-%d)\r\n",COP_id,COP_id>>16,(COP_id&0xFF00)>>8,COP_id&0xFF); // print COP ID
   	printf("Robot ID:%08X (%d-%d-%d)\r\n",client_id,client_id>>16,(client_id&0xFF00)>>8,client_id&0xFF); // print ROBOT ID
-	printf("COP State:%2i\n", state);
+	printf("COP State:%2i  ; Active element: %2i \r\n", state, Active_element);
 	printf("Robot (X,Y):(%8.4f,%8.4f); Yaw=%8.2f degree\n", robot_x,robot_y,robot_yaw*180/PI);
 	printf("       Vx=%8.4f m/s, Va=%8.4f rad/s\n", robot_v,robot_w);
 

@@ -41,8 +41,7 @@
 #include <tf/transform_listener.h>
 #include <boost/thread.hpp>
 
-//#include <libplayerc/playerc.h>//Must go before JAUS Stuff 5/15/2012
-
+//JAUS Stuff must in the end of the include section
 #include "JuniorAPI.h"
 #include "JAUSmessage.h"
 #include "JAUS_MESSAGE_ID.h"
@@ -144,11 +143,6 @@ inline double normalize(double angle);
 inline double angle_add(double pa, double pa_return);
 int active_elm=0; //use for an offset to the base address of the element array
 
-/*
-// setup player here
-playerc_client_t *client;
-playerc_position2d_t *position2d;
-*/
 // Setup ROS Publisher and Subscriber
 // Publish cmd_vel to control robot ( should change to waypoint driver )
 //ros::Publisher cmd_vel_sub_;
@@ -176,7 +170,7 @@ bool elm_set = false;
 int main(int argc, char* argv[])
 {
     long handle;
-// TODO setup ROS here
+// setup ROS parameter here
 	ros::init(argc, argv, "ROS_JAUS");
 	ros::NodeHandle n("~");
 	// read parameters
@@ -248,16 +242,6 @@ int main(int argc, char* argv[])
         return 0;
     }
     else printf("Successfully connected to Junior...\n");
-
-	// Send some message	
-	
-	//SEND_QUERY_IDENTIFICATION(handle,COP_JausID); // Query COP ID
-	//BROADCAST_QUERY_IDENTIFICATION(handle); // Query any subsystem at network and not in addressbook
-	//	SEND_REPORT_IDENTIFICATION(handle,COP_JausID);
-	//	SEND_REPORT_CONTROL(handle,COP_JausID);
-	//	SEND_REPORT_STATUS(handle,COP_JausID);
-	//	SEND_REPORT_LOCAL_POSE (handle,COP_JausID);
-	//	SEND_REPORT_VELOCITY_STATE (handle,COP_JausID);
 					   
 	// for receive data
 	const unsigned short MaxMsgSize = 500;
@@ -268,7 +252,6 @@ int main(int argc, char* argv[])
     unsigned short msg_id;
 
 	VehicleStatus=Status_STANDBY;// Standby
-	// Reading/Print out JAUS messages from JVT till user hit Ctrl-C
 
 // Run spin() in different thread
    boost::thread spin_thread = boost::thread(boost::bind(&spinThread));
@@ -298,8 +281,6 @@ int main(int argc, char* argv[])
 				printf("MessageID:%02X%02X , Data: ",buffer[1]&0xFF,buffer[0]&0xFF); // print message ID
 			for (int i=2;i<buffersize;i++)  printf("%02X ",buffer[i]&0xFF); // Print DATA
 			}
-			//printf("Unknown message type received.\n");
-			//printf(" Message type:%4X , %d bytes received. ",msg_id,buffersize);
 			printf(" ; %d bytes received. ",buffersize);
 			printf("From :%8X ( %d-%d-%d )\n",sender,sender>>16,(sender&0xFF00)>>8,sender&0xFF);   
 			
@@ -314,31 +295,6 @@ int main(int argc, char* argv[])
 		// use loop counter do some testing
 		//loopcounter++;
 
-/* TODO this part move to OdomHandel
-		// update and read player data here
-		gettimeofday(&curr,NULL);
-		diff = (curr.tv_sec + curr.tv_usec/1e6) - (lastplayerupdate.tv_sec + lastplayerupdate.tv_usec/1e6);
-		if(diff >= 1.0/update_rate_Hz)  // 10 Hz playerdata update rate
-		{
-			// read data from player
-			//printf("Player Data Update...\n");
-			//playerc_client_read(client);
-			//lastplayerupdate = curr;
-			//TODO change to ROS odom data
-			posx_ROS=position2d->px;//global
-			posyaw_ROS=position2d->pa;
-			posy_ROS=position2d->py;
-			// here convert ROS (x,y,yaw) to JAUS (X,Y,Yaw)
-			translate_ROS_to_JAUS(posX_JAUS, posY_JAUS, X_home_ROS, Y_home_ROS ,Yaw_home_ROS, &posX_JAUS, &posY_JAUS);			
-			posYaw_JAUS = angle_add(posyaw_ROS, -(Yaw_home_ROS));
-			posZ_JAUS=0;
-			
-			posSpeed=position2d->vx;
-			posYawRate=position2d->va;
-			//printf("posY_JAUS= %f, posX_JAUS = %f, posYaw_JAUS = %f\n",posY_JAUS, posX_JAUS, posYaw_JAUS);
-
-		}
-*/
 
 		//drive the robot with this code if the execute list comand is received
 	if (drive == true){
@@ -349,9 +305,8 @@ int main(int argc, char* argv[])
 			//Y_goal = elm_list[active_elm].posy; //get goal from the element list
 			
 			translate_JAUS_to_ROS(elm_list[active_elm].posx, elm_list[active_elm].posy, X_home_ROS, Y_home_ROS,Yaw_home_ROS, &X_goal_ROS, &Y_goal_ROS);
-                        // TODO publish ROS goal here 
-			//playerc_position2d_set_cmd_pose(position2d, X_goal, Y_goal,Yaw_home_ROS,1);
-			//ROSsetGoal(X_goal, Y_goal,Yaw_home_ROS, &ac);
+
+            // publish ROS goal here 
 #if(MoveBase_ENABLED)
 			ac.sendGoal( ROSsetGoal(X_goal_ROS, Y_goal_ROS,Yaw_home_ROS) );
 #else
@@ -381,8 +336,8 @@ int main(int argc, char* argv[])
 		active_elm++; //tell robot to drive to the next local waypoint
 		//X_goal = elm_list[active_elm].posx ; Y_goal = elm_list[active_elm].posy; //get goal from the element list
 		translate_JAUS_to_ROS(elm_list[active_elm].posx, elm_list[active_elm].posy, X_home_ROS, Y_home_ROS,Yaw_home_ROS, &X_goal_ROS, &Y_goal_ROS);
-		// TODO publish ROS goal here 
 
+		// publish ROS goal here 
 #if(MoveBase_ENABLED)
 			ac.sendGoal( ROSsetGoal(X_goal_ROS, Y_goal_ROS,Yaw_home_ROS) );
 #else
@@ -402,7 +357,6 @@ int main(int argc, char* argv[])
 
 #endif
 
-		//playerc_position2d_set_cmd_pose(position2d, (X_goal), (Y_goal), Yaw_home_ROS,1);  // let robot can drive back and face same direction
 		printf("Set new goal:X_goal = %f Y_goal = %f \r\n", X_goal_ROS, Y_goal_ROS);
 		} //drive if not	
 	if (active_elm > list_ind) { // if we are there increment to drive to the next one the next time throught the loop
@@ -431,7 +385,7 @@ int main(int argc, char* argv[])
 		}
 		
 		// Sleep a bit before looping again
-   //ROS_INFO("ROS Loop sleep Once !");
+        //ROS_INFO("ROS Loop sleep Once !");
 		//ros::spinOnce();
 		//usleep(100); // 100 micro-seconds
 		// %Tag(RATE_SLEEP)%
@@ -447,13 +401,6 @@ int main(int argc, char* argv[])
     // Clean-up
     JrDisconnect(handle);
 	printf("\nExit.... Disconnect Jr....\r\n");
-
-	// Shutdown player client
-/*
-	playerc_position2d_unsubscribe(position2d);
-	playerc_position2d_destroy(position2d);
-	playerc_client_disconnect(client);
-	playerc_client_destroy(client);*/
 	
     return 0;
 }
@@ -746,10 +693,10 @@ void ProcessJausMessage(long handle,unsigned int COP_JausID,unsigned int Message
 			
 #ifdef __APPLE__
 		  // in mac use say
-			system("say shutdown player jaws &");
+			system("say shutdown ROS jaws &");
 #else
 		  // in linux use espeak
-			system("espeak 'shutdown player jaws' &");
+			system("espeak 'shutdown ROS jaws' &");
 #endif			
 			
 			
@@ -1536,7 +1483,7 @@ gotoxy(1,6);
 	printf("                                                                                \r\n");
 	printf("                                                                                \r\n");
 	printf("                                                                                \r\n");
-	//printf("                                                                                \r\n");
+//printf("                                                                                \r\n");
 //printf("                                                                                \r\n");
 //printf("                                                                                \r\n");
 //printf("                                                                                \r\n");
@@ -1545,23 +1492,23 @@ gotoxy(1,1);
 
 
 
-	printf("COP   JAUS ID:%08X (%d-%d-%d)\r\n",COP_JausID,COP_JausID>>16,(COP_JausID&0xFF00)>>8,COP_JausID&0xFF); // print JAUS_ID
-	printf("Robot JAUS ID:%08X (%d-%d-%d)\r\n",Robot_JausID,Robot_JausID>>16,(Robot_JausID&0xFF00)>>8,Robot_JausID&0xFF); // print JAUS_ID
+	printf("COP   JAUS ID:%08X (%d-%d-%d)              \r\n",COP_JausID,COP_JausID>>16,(COP_JausID&0xFF00)>>8,COP_JausID&0xFF); // print JAUS_ID
+	printf("Robot JAUS ID:%08X (%d-%d-%d)              \r\n",Robot_JausID,Robot_JausID>>16,(Robot_JausID&0xFF00)>>8,Robot_JausID&0xFF); // print JAUS_ID
 
-	printf("ROS  pose: [%+6.2f,%+6.2f,%+6.1f degree];\r\n", posx_ROS,posy_ROS,posyaw_ROS*180/PI);
-	printf("JAUS pose: [%+6.2f,%+6.2f,%+6.1f degree];\r\n", posX_JAUS,posY_JAUS,posYaw_JAUS*180/PI);
-	printf("JAUS Speed:[%+6.2f m/s, %+6.2f rad/s]\r\n", posSpeed_JAUS,posYawRate_JAUS);
-	
-	gotoxy(50,1);	
 	printf("Current goal[%i]: ROS(X,Y)= (%6.2f, %6.2f) \r\n",active_elm, X_goal_ROS, Y_goal_ROS);
-	gotoxy(50,2);	
-	printf("Waypoint[0]: JAUS(X,Y)= (%6.2f, %6.2f)",elm_list[0].posx, elm_list[0].posy);
-	gotoxy(50,3);	
-	printf("Waypoint[1]: JAUS(X,Y)= (%6.2f, %6.2f)",elm_list[1].posx, elm_list[1].posy);
-	gotoxy(50,4);	
-	printf("Waypoint[2]: JAUS(X,Y)= (%6.2f, %6.2f)",elm_list[2].posx, elm_list[2].posy);
-	gotoxy(50,5);	
-	printf("Waypoint[3]: JAUS(X,Y)= (%6.2f, %6.2f)",elm_list[3].posx, elm_list[3].posy);
+	printf("ROS  pose: [%+6.2f,%+6.2f,%+6.1f degree];  \r\n", posx_ROS,posy_ROS,posyaw_ROS*180/PI);
+	printf("JAUS pose: [%+6.2f,%+6.2f,%+6.1f degree];  \r\n", posX_JAUS,posY_JAUS,posYaw_JAUS*180/PI);
+	printf("JAUS Speed:[%+6.2f m/s, %+6.2f rad/s]      \r\n", posSpeed_JAUS,posYawRate_JAUS);
+	
+//	gotoxy(42,1);
+//	gotoxy(42,2);	
+	printf("Waypoint[0]: JAUS(X,Y)= (%6.2f, %6.2f)\r\n",elm_list[0].posx, elm_list[0].posy);
+//	gotoxy(42,3);	
+	printf("Waypoint[1]: JAUS(X,Y)= (%6.2f, %6.2f)\r\n",elm_list[1].posx, elm_list[1].posy);
+//	gotoxy(42,4);	
+	printf("Waypoint[2]: JAUS(X,Y)= (%6.2f, %6.2f)\r\n",elm_list[2].posx, elm_list[2].posy);
+//	gotoxy(42,5);	
+	printf("Waypoint[3]: JAUS(X,Y)= (%6.2f, %6.2f)\r\n",elm_list[3].posx, elm_list[3].posy);
 	
 	
 //	printf("COP State:%2i\n", state);
