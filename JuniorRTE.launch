@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="ROSJAUS" type="JuniorRTE" name="JAUS_JuniorRTE" args="$(find ROSJAUS)/bin/jr_config.xml" output="screen">
+  </node>
+ </launch>
+ 

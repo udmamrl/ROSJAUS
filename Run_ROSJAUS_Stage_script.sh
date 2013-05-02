@@ -4,10 +4,10 @@
 
 # 
 # if you are not using it just put $PWD
-T1_PATH="$(rospack find ROSJAUS)/bin"
+T1_PATH="$PWD"
 T2_PATH="$PWD"
-T3_PATH="$(rospack find ROSJAUS)/bin"
-T4_PATH="$(rospack find ROSJAUS)/bin"
+T3_PATH="$PWD"
+T4_PATH="$PWD"
 
 # The command you want to run
 # without "&& bash" , the terminal/tab will close after running the code
