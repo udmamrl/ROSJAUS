@@ -1,0 +1,10 @@
+<launch>
+  <node pkg="ROSJAUS" type="ROSJAUS" name="IGVC_JAUS" output="screen">
+  <param name="JAUS_COP_ID"      value="42"/>
+  <param name="Robot_JAUS_ID"    value="123"/>
+  <param name="distance_epsilon" value="0.5"/>
+  <param name="ROS_loop_rate_Hz" value="20."/>
+  <remap from="odom"   to="JAUS_Odom"/>
+  </node>
+ </launch>
+ 
