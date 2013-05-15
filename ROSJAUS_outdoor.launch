@@ -5,6 +5,7 @@
   <param name="distance_epsilon" value="0.5"/>
   <param name="ROS_loop_rate_Hz" value="20."/>
   <remap from="odom"   to="JAUS_Odom"/>
+
   </node>
  </launch>
  

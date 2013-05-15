@@ -11,7 +11,7 @@ T3_PATH="$PWD"
 # The command you want to run
 # without "&& bash" , the terminal/tab will close after running the code
 T1_Command="roslaunch ROSJAUS JuniorRTE.launch"
-T2_Command="roslaunch JAUS_move_base_simple JAUS_move_base.launch "
+T2_Command="roslaunch JAUS_move_base_simple JAUS_move_base_outdoor.launch "
 T3_Command="roslaunch ROSJAUS ROSJAUS_outdoor.launch"
 
 # Title for each tab
