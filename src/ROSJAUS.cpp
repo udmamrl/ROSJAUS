@@ -915,7 +915,8 @@ void ProcessJausMessage(long handle,unsigned int COP_JausID,unsigned int Message
 			printf("Message: SetGlobalPose             received\r\n"); 
 			break; 
 		case JAUS_ID_SetLocalPose             :
-{			printf("Message: SetLocalPose              received\r\n");
+			{			
+			printf("Message: SetLocalPose              received\r\n");
 			// TODO should check the package see what value the COP want then set odom,
 			// now just set all to zero
 			if (*sender==Controller_JausID) // check who want set local pose, make sure is controler
@@ -927,15 +928,25 @@ void ProcessJausMessage(long handle,unsigned int COP_JausID,unsigned int Message
 
 			unsigned short Yaw_hold = (unsigned short)(buffer[13]&0xFF)<<8 | (unsigned short)(buffer[12]&0xFF);
 			//playerc_position2d_set_odom(position2d,0,0,0);
-			double X = ceil(UInt32ToScale(X_hold, -100000, 100000));
-			double Y = ceil(UInt32ToScale(Y_hold, -100000, 100000));
-		  float Yaw= ceil(UInt16ToScale(Yaw_hold, -1*PI, PI));
+			double X_hold_jaus = ceil(UInt32ToScale(X_hold, -100000, 100000));
+			double Y_hold_jaus = ceil(UInt32ToScale(Y_hold, -100000, 100000));
+			float Yaw_hold_jaus= ceil(UInt16ToScale(Yaw_hold, -1*PI, PI));
 		  
 			//Yaw_home_ROS = posyaw_ROS;//angle_add(posyaw_ROS, (-Yaw));
-			Yaw_home_ROS = normalize(posyaw_ROS - Yaw);
-			X_home_ROS = posx_ROS;// - X;
-			Y_home_ROS = posy_ROS;// - Y;
-			printf("SetLocalPose to X = %f, Y = %f, Yaw = %f\n", X , Y, Yaw);
+			// TODO Fix here ... the logic is not correct when X_hold_jaus,Y_hold_jaus,Yaw_hold_jaus is not zero
+			// if X_hold_jaus==0,y_hold_jaus==0,Yaw_hold_jaus==0
+			Yaw_home_ROS = posyaw_ROS ;
+			X_home_ROS   = posx_ROS;
+			Y_home_ROS   = posy_ROS;
+			// else
+			//convert ros_x,y,yaw to JAUS_X,Y,YAW , with home=0,0,0
+			//offset jaus_home but X,Y,Yaw_hold_jaus
+			// convert jaus_home back to ROS_xy with home=0,0
+			//
+			
+			
+			//
+			printf("SetLocalPose to X = %f, Y = %f, Yaw = %f\n", X_hold_jaus , Y_hold_jaus, Yaw_hold_jaus);
 			//playerc_position2d_set_odom(position2d,X,Y,posyaw_ROS); // now just set to zero
 			
 #ifdef __APPLE__
@@ -952,7 +963,7 @@ void ProcessJausMessage(long handle,unsigned int COP_JausID,unsigned int Message
 				printf("Sensder is not controlling, can not set local pose!!\r\n");				
 				
 			}
-}			
+			}			
 			break; 
 		case JAUS_ID_SetWrenchEffort          :
 			printf("Message: SetWrenchEffort           received\r\n"); 
@@ -993,13 +1004,13 @@ void ProcessJausMessage(long handle,unsigned int COP_JausID,unsigned int Message
 			unsigned int elm_place = 4; //place the element data starts in the list
 			unsigned int list_size = ((unsigned short)(buffer[3]));
 			for(int i = 0; i < list_size; i++){
-	Processelement(&elm_list[list_ind],handle, COP_JausID, &buffer[elm_place]);
+			Processelement(&elm_list[list_ind],handle, COP_JausID, &buffer[elm_place]);
 			list_ind++; printf("linst index = %i \r\n", list_ind);
 			elm_place = elm_place + 22;
 			}
 			confirm_element_request(handle, COP_JausID, buffer[2]);
 			if(list_ind>4) printf("error, more elements received than expected\n");
-		}	
+			}	
 			break; 
 		case JAUS_ID_DeleteElement            :
 			printf("Message: DeleteElement             received\r\n"); 
@@ -1011,7 +1022,7 @@ void ProcessJausMessage(long handle,unsigned int COP_JausID,unsigned int Message
 			printf("Message: RejectElementRequest      received\r\n"); 
 			break; 
 		case JAUS_ID_ExecuteList              :
-{
+			{
 			printf("Message: ExecuteList               received\r\n"); 
 			drive = true; //this is a global variable because I am lazy
 			unsigned short speed_hold = ((unsigned short)(buffer[3]&0xFF)<<8 | (unsigned short)(buffer[2]&0xFF));	
@@ -1026,7 +1037,7 @@ void ProcessJausMessage(long handle,unsigned int COP_JausID,unsigned int Message
 	    system("espeak 'Execute List Vehicle Driving' &");
 #endif	        
 	
-}
+			}
 			break; 
 
 		case JAUS_ID_QueryGlobalPose          :
@@ -1483,6 +1494,8 @@ gotoxy(1,6);
 	printf("                                                                                \r\n");
 	printf("                                                                                \r\n");
 	printf("                                                                                \r\n");
+	printf("                                                                                \r\n");
+	printf("                                                                                \r\n");
 //printf("                                                                                \r\n");
 //printf("                                                                                \r\n");
 //printf("                                                                                \r\n");
@@ -1495,10 +1508,11 @@ gotoxy(1,1);
 	printf("COP   JAUS ID:%08X (%d-%d-%d)              \r\n",COP_JausID,COP_JausID>>16,(COP_JausID&0xFF00)>>8,COP_JausID&0xFF); // print JAUS_ID
 	printf("Robot JAUS ID:%08X (%d-%d-%d)              \r\n",Robot_JausID,Robot_JausID>>16,(Robot_JausID&0xFF00)>>8,Robot_JausID&0xFF); // print JAUS_ID
 
-	printf("Current goal[%i]: ROS(X,Y)= (%6.2f, %6.2f) \r\n",active_elm, X_goal_ROS, Y_goal_ROS);
-	printf("ROS  pose: [%+6.2f,%+6.2f,%+6.1f degree];  \r\n", posx_ROS,posy_ROS,posyaw_ROS*180/PI);
-	printf("JAUS pose: [%+6.2f,%+6.2f,%+6.1f degree];  \r\n", posX_JAUS,posY_JAUS,posYaw_JAUS*180/PI);
-	printf("JAUS Speed:[%+6.2f m/s, %+6.2f rad/s]      \r\n", posSpeed_JAUS,posYawRate_JAUS);
+	printf("ROS goal[%i]: [%+6.2f,%+6.2f ]                \r\n",active_elm, X_goal_ROS, Y_goal_ROS);
+	printf("ROS     pose: [%+6.2f,%+6.2f,%+6.1f degree];  \r\n", posx_ROS,posy_ROS,posyaw_ROS*180/PI);
+	printf("ROS_HOMEpose: [%+6.2f,%+6.2f,%+6.1f degree];  \r\n", X_home_ROS, Y_home_ROS ,Yaw_home_ROS*180/PI);
+	printf("JAUS    pose: [%+6.2f,%+6.2f,%+6.1f degree];  \r\n", posX_JAUS,posY_JAUS,posYaw_JAUS*180/PI);
+	printf("JAUS   Speed: [%+6.2f m/s, %+6.2f rad/s]      \r\n", posSpeed_JAUS,posYawRate_JAUS);
 	
 //	gotoxy(42,1);
 //	gotoxy(42,2);	
