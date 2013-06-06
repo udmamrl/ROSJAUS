@@ -4,8 +4,9 @@
 // can't use undefined size array so define the max size here
 // 4 waypoing in IGVC JAUS
 #define Max_ELEMENT_Numbers 4
-// Only use 8 characters in Vehicle Name string
-#define Max_IDENTIFICATION_StringLength 8
+// Use 20 characters in Vehicle Name string
+// before send string out recalculate the mesage size base on new string
+#define Max_IDENTIFICATION_StringLength 20
 // Define the message structure.  We have to tell
 // the compiler to pack on 1-byte boundaries to
 // make sure it doesn't insert padding that would

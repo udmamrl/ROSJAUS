@@ -35,6 +35,7 @@
 #include <geometry_msgs/PoseStamped.h> // for  move_base_simple/goal
 #include <geometry_msgs/PoseWithCovarianceStamped.h> // for  move_base /initialpose
 #include <nav_msgs/Odometry.h>
+#include <std_msgs/Float32.h>  // for acceleration in our JAUS_move_base_simple
 //from http://www.ros.org/wiki/navigation/Tutorials/SendingSimpleGoals
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
@@ -121,6 +122,8 @@ void RestoreCursor(void);
 double lastCOPupdate= 0;
 double current_time;
 
+char Robot_Name[Max_IDENTIFICATION_StringLength];
+
 double posX_JAUS,posY_JAUS;
 double posYaw_JAUS = 0;
 double posSpeed_JAUS,posYawRate_JAUS;
@@ -150,6 +153,8 @@ int active_elm=0; //use for an offset to the base address of the element array
 //ros::Subscriber odom_pub_ ;
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 double ROS_loop_rate_Hz;
+double move_base_max_acc;
+double move_base_max_acc_last_waypoint;
 
 double drive_speed;
 unsigned int number_elements=0;
@@ -176,17 +181,33 @@ int main(int argc, char* argv[])
 	// read parameters
 	n.param("JAUS_COP_ID",      COP_id, 42);
 	n.param("Robot_JAUS_ID",    Robot_id, 106);
+
+  // Read Robot Name Here max 20 characters
+  std::string Robot_name_str;
+  n.param<std::string>("Robot_Name", Robot_name_str, "UDM AMRL");
+  strcpy(Robot_Name,Robot_name_str.c_str());
+
+	ROS_INFO("[Got parameters] Robot Name: [%s] , JAUS_ID: [%d] \n",Robot_Name, Robot_id);
+
+	
+// if you drive very fast like in IGVC2012 @1.9 m/s , set this value to 1.6m , We count on vehicle continue to drive and pass waypoint
+// For IGVC2013 we use JAUS_move_base_simple to drive vehicle , need to play with this value.
 	n.param("distance_epsilon", distance_epsilon, 0.5);
 //	n.param("update_rate_Hz",    update_rate_Hz, 10.0);
 	n.param("ROS_loop_rate_Hz",    ROS_loop_rate_Hz, 20.0);
+	
+	
+	n.param("move_base_max_acc",    move_base_max_acc, 4.0);
+	n.param("move_base_max_acc_last_waypoint",    move_base_max_acc_last_waypoint, 2.0);
 
 	ros::Subscriber odom_sub = n.subscribe("/odom", 1, Odom_Callback ); // queue_size is 1 , we don't need old data
 
 // this is simple one waypoint navigation
 	ros::Publisher move_base_simple_goal_pub = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1);
+	ros::Publisher move_base_simple_goal_max_acc_pub = n.advertise<std_msgs::Float32>("/move_base_simple/max_acceleration", 1);
 	ros::Publisher move_base_initialpose_pub = n.advertise<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1);
 // setup publisher, should be waypoint 
-//	ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+	std_msgs::Float32 Max_acc_msgs;
 // setup subscriber
     geometry_msgs::PoseStamped Goal_PoseStamped;
     Goal_PoseStamped.header.frame_id="/map";
@@ -201,7 +222,8 @@ int main(int argc, char* argv[])
             Map_initialpose.pose.pose.orientation.w=1; 
 
 
-            move_base_initialpose_pub.publish(Map_initialpose);    
+            move_base_initialpose_pub.publish(Map_initialpose); 
+               
 // for debug
 #if(MoveBase_ENABLED)
   //tell the action client that we want to spin a thread by default
@@ -315,6 +337,10 @@ int main(int argc, char* argv[])
             Goal_PoseStamped.pose.position.y=Y_goal_ROS;
             Goal_PoseStamped.pose.orientation.w=1;
             move_base_simple_goal_pub.publish(Goal_PoseStamped);
+            
+            // update max acceleration here
+            Max_acc_msgs.data=move_base_max_acc;
+            move_base_simple_goal_max_acc_pub.publish(Max_acc_msgs);
 
 #ifdef __APPLE__
   // in mac use say
@@ -326,7 +352,7 @@ int main(int argc, char* argv[])
 
 #endif
 			elm_set = true;
-			printf("Set goal: X_goal = %f Y_goal = %f \r\n", X_goal_ROS, Y_goal_ROS);
+			printf("Active Element : [%i] Set goal: X_goal = %f Y_goal = %f \r\n", active_elm,X_goal_ROS, Y_goal_ROS);
 		//printf("driving 2\n");
 			}
 		double dist= sqrt( pow((posx_ROS - X_goal_ROS),2)+pow((posy_ROS - Y_goal_ROS),2));
@@ -346,6 +372,18 @@ int main(int argc, char* argv[])
             Goal_PoseStamped.pose.position.y=Y_goal_ROS;
             Goal_PoseStamped.pose.orientation.w=1;
             move_base_simple_goal_pub.publish(Goal_PoseStamped);
+            
+            // update max acceleration here
+            if(active_elm < (list_ind-1)){
+            	Max_acc_msgs.data=move_base_max_acc;
+            	}
+            	// if it is last waypoint use different acceleration inorder to stop
+            else if (active_elm == (list_ind-1)){
+            	Max_acc_msgs.data=move_base_max_acc_last_waypoint;
+            	}
+            	
+            move_base_simple_goal_max_acc_pub.publish(Max_acc_msgs);
+
 
 #ifdef __APPLE__
   // in mac use say
@@ -357,7 +395,7 @@ int main(int argc, char* argv[])
 
 #endif
 
-		printf("Set new goal:X_goal = %f Y_goal = %f \r\n", X_goal_ROS, Y_goal_ROS);
+			printf("Active Element : [%i] Set goal: X_goal = %f Y_goal = %f \r\n", active_elm,X_goal_ROS, Y_goal_ROS);
 		} //drive if not	
 	if (active_elm > list_ind) { // if we are there increment to drive to the next one the next time throught the loop
 		active_elm =0; drive =false; elm_set = false;
@@ -441,21 +479,33 @@ void SEND_REPORT_IDENTIFICATION(long handle,unsigned int COP_ID)
 	idmsg.msg_id= JAUS_ID_ReportIdentification;
 	idmsg.QueryType=ID_QueryType_Subsystem; // subsystem
 	idmsg.Type= ID_Type_Vehicle; // Vehicle
+	
 	//idmsg.Name = {'C', 'e', 'r','b','e','r','u','s'};
 	//char buff[9] = "Cerberus";
   // Max_IDENTIFICATION_StringLength is 8 , change it in JAUSmessage.h
-  	  char buff[Max_IDENTIFICATION_StringLength+1] = "Bazinga!";
+  //	  char buff[Max_IDENTIFICATION_StringLength+1] = "Bazinga!";
+  //
+  /* 
+  	  char buff[] = "Bazinga!";
 	//strcpy(buff,"Cerberus"); // System ID
 	int i =0;
 	while(buff[i] != 0){
 	idmsg.Name[i] = buff[i];	
 		i++;}
 	idmsg.StringLength=sizeof(idmsg) - 6;
+	*/
+	
+	strcpy(idmsg.Name,Robot_Name);
+  idmsg.StringLength=strlen(idmsg.Name);
+	long int msg_size=sizeof(idmsg)-Max_IDENTIFICATION_StringLength+strlen(idmsg.Name);
 		
     // that the COP subsystem id is decimal 90 (0x005A hex)
     //
-	printf("Message: Data Send [%s] Size:%li\n",((char*)&idmsg)+6,sizeof(idmsg));
-    if (JrSend(handle, COP_ID, sizeof(idmsg), (char*)&idmsg) != Ok)
+	printf("Message: Data Send [%s] Size:%li\n",((char*)&idmsg)+6,msg_size);
+	
+	
+//    if (JrSend(handle, COP_ID, sizeof(idmsg), (char*)&idmsg) != Ok)
+    if (JrSend(handle, COP_ID, msg_size, (char*)&idmsg) != Ok)
         printf("Unable to send System ID message.  Need more debug here...\n");
 		else printf("Sent message System ID to the COP\n");
     // Now we send the message to the COP using Junior. 

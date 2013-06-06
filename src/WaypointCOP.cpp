@@ -394,6 +394,8 @@ void SEND_REPORT_IDENTIFICATION(long handle,unsigned int client_id){
   idmsg.msg_id=0x4B00;
   idmsg.QueryType=2; // subsystem
   idmsg.Type= 10001; // Vehicle
+
+/*
   //strcpy(idmsg.Name,"cerberrus"); // System ID
   //idmsg.Name = {'C', 'e', 'r','b','e','r','u','s'}; 
   // Max_IDENTIFICATION_StringLength is 8 , change it in JAUSmessage.h
@@ -402,15 +404,20 @@ void SEND_REPORT_IDENTIFICATION(long handle,unsigned int client_id){
   int i = 0;
   while(buff[i] !=0){ idmsg.Name[i] = buff[i]; i++;}
   idmsg.StringLength=sizeof(idmsg) - 6;
- 
+*/
+
+	strcpy(idmsg.Name,"JAUS-COP"); 
+	idmsg.StringLength=strlen(idmsg.Name);
+
     // Now we send the message to the COP using Junior.  Recall
     // that the COP subsystem id is decimal 90 (0x005A hex)
     //
   //printf("Message: Data Send [%s] Size:%li\n",((char*)&idmsg)+6,sizeof(idmsg));
+	long int msg_size=sizeof(idmsg)-Max_IDENTIFICATION_StringLength+strlen(idmsg.Name);
   
   
   
-    if (JrSend(handle, client_id, sizeof(idmsg), (char*)&idmsg) != Ok)
+    if (JrSend(handle, client_id, msg_size, (char*)&idmsg) != Ok)
         printf("Unable to send System ID message.  Need more debug here...\n");
     else printf("Sent Report Identification to the client ID\n");
  
