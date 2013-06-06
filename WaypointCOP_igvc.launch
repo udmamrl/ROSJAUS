@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="ROSJAUS" type="WaypointCOP" name="JAUS_WaypointCOP" args="$(find ROSJAUS)/bin/jr_config_igvc.xml" output="screen">
+  </node>
+ </launch>
+ 

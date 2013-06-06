@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="ROSJAUS" type="JuniorRTE" name="JAUS_JuniorRTE" args="$(find ROSJAUS)/bin/jr_config_igvc.xml" output="screen">
+  </node>
+ </launch>
+ 
