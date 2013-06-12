@@ -125,15 +125,17 @@ double current_time;
 char Robot_Name[Max_IDENTIFICATION_StringLength];
 
 double posX_JAUS,posY_JAUS;
+double posZ_JAUS=0;
 double posYaw_JAUS = 0;
 double posSpeed_JAUS,posYawRate_JAUS;
-//double posZ_JAUS=0;
 
-double posx_ROS,posy_ROS,posyaw_ROS;
+double posx_ROS,posy_ROS,posz_ROS,posyaw_ROS;
 
 double X_home_ROS = 0;//change these to the proper magic number
 double Y_home_ROS = 0;
+double Z_home_ROS = 0;
 double Yaw_home_ROS = 0;
+
 
 
 //This is the offset initialized to zero for the angle calculation
@@ -155,8 +157,12 @@ typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseCl
 double ROS_loop_rate_Hz;
 double move_base_max_acc;
 double move_base_max_acc_last_waypoint;
+double max_run_time_speed;
+
 
 double drive_speed;
+double drive_speed_scale;
+
 unsigned int number_elements=0;
 unsigned int debugi=1;
 unsigned char VehicleStatus= Status_INIT ; // init
@@ -199,15 +205,19 @@ int main(int argc, char* argv[])
 	
 	n.param("move_base_max_acc",    move_base_max_acc, 4.0);
 	n.param("move_base_max_acc_last_waypoint",    move_base_max_acc_last_waypoint, 2.0);
-
+	n.param("move_base_max_run_time_speed",    max_run_time_speed, 1.5);
+	n.param("drive_speed_scale",    drive_speed_scale, 1.0);
 	ros::Subscriber odom_sub = n.subscribe("/odom", 1, Odom_Callback ); // queue_size is 1 , we don't need old data
 
 // this is simple one waypoint navigation
 	ros::Publisher move_base_simple_goal_pub = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1);
 	ros::Publisher move_base_simple_goal_max_acc_pub = n.advertise<std_msgs::Float32>("/move_base_simple/max_acceleration", 1);
+	ros::Publisher max_run_time_speed_pub            = n.advertise<std_msgs::Float32>("/move_base_simple/max_run_time_speed", 1);
 	ros::Publisher move_base_initialpose_pub = n.advertise<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1);
+
 // setup publisher, should be waypoint 
 	std_msgs::Float32 Max_acc_msgs;
+	std_msgs::Float32 Max_run_time_speed_msgs;
 // setup subscriber
     geometry_msgs::PoseStamped Goal_PoseStamped;
     Goal_PoseStamped.header.frame_id="/map";
@@ -341,6 +351,9 @@ int main(int argc, char* argv[])
             // update max acceleration here
             Max_acc_msgs.data=move_base_max_acc;
             move_base_simple_goal_max_acc_pub.publish(Max_acc_msgs);
+            // update max run time speed here
+            Max_run_time_speed_msgs.data=max_run_time_speed*drive_speed_scale;
+            max_run_time_speed_pub.publish(Max_run_time_speed_msgs);
 
 #ifdef __APPLE__
   // in mac use say
@@ -383,6 +396,8 @@ int main(int argc, char* argv[])
             	}
             	
             move_base_simple_goal_max_acc_pub.publish(Max_acc_msgs);
+            Max_run_time_speed_msgs.data=max_run_time_speed*drive_speed_scale;
+            max_run_time_speed_pub.publish(Max_run_time_speed_msgs);
 
 
 #ifdef __APPLE__
@@ -650,12 +665,12 @@ void SEND_REPORT_LOCAL_POSE (long handle,unsigned int COP_ID)
 		//recalculate the posistion
 		//translate_ROS_to_JAUS(posx_ROS, posy_ROS, X_home_ROS, Y_home_ROS ,Yaw_home_ROS, &posX_JAUS, &posY_JAUS);	
 		
-		lpmsg.pv = 259;//REPORT_LOCAL_POSE_MSG_pv=LOCAL_POSE_PVBit_X+LOCAL_POSE_PVBit_Y+LOCAL_POSE_PVBit_TimeStamp ;
+		lpmsg.pv = LOCAL_POSE_PVBit_X+LOCAL_POSE_PVBit_Y+LOCAL_POSE_PVBit_Z+LOCAL_POSE_PVBit_Yaw+LOCAL_POSE_PVBit_TimeStamp ;
 		lpmsg.X = scaleToUInt32(posX_JAUS, -100000, 100000);
 		lpmsg.Y = scaleToUInt32(posY_JAUS, -100000, 100000);
-		//lpmsg.Z = scaleToUInt32(posZ_JAUS, -100000, 100000);
+		lpmsg.Z = scaleToUInt32(posZ_JAUS, -100000, 100000);
 		
-		//lpmsg.Yaw = scaleToUInt16(posYaw_JAUS, -1*PI, PI);
+		lpmsg.Yaw = scaleToUInt16(posYaw_JAUS, -1*PI, PI);
 		
 		//	tm lpTime
 		lpmsg.TimeStamp=GetTimeStamp();
@@ -664,7 +679,7 @@ void SEND_REPORT_LOCAL_POSE (long handle,unsigned int COP_ID)
 		// Now we send the message to the COP using Junior.  Recall
 		// that the COP subsystem id is decimal 90 (0x005A hex)
 		//
-ROS_INFO("ROS:[%5.2f,%5.2f,%5.2f],JAUS:[%5.2f,%5.2f,%5.2f],Speed:[%5.2f,%5.2f]", posx_ROS,posy_ROS,posyaw_ROS,posX_JAUS,posY_JAUS,posYaw_JAUS,posSpeed_JAUS,posYawRate_JAUS);
+ROS_INFO("ROS:[%5.2f,%5.2f,%5.2f,%5.2f],JAUS:[%5.2f,%5.2f,%5.2f,%5.2f],Speed:[%5.2f,%5.2f]", posx_ROS,posy_ROS,posz_ROS,posyaw_ROS,posX_JAUS,posY_JAUS,posZ_JAUS,posYaw_JAUS,posSpeed_JAUS,posYawRate_JAUS);
 		if (JrSend(handle, COP_ID , sizeof(lpmsg), (char*)&lpmsg) != Ok)
 			printf("Unable to send Local Pose message.  Need more debug here...\n");
 		else printf("Sent message Local Pose to the COP\n");
@@ -972,14 +987,17 @@ void ProcessJausMessage(long handle,unsigned int COP_JausID,unsigned int Message
 			if (*sender==Controller_JausID) // check who want set local pose, make sure is controler
 			{ // 
 			// TODO get XYZA data to set loca pose
+			
+			// for IGVC2013 this is for fix PV 0x47 ,x,y,z,yaw
 			unsigned int X_hold = (unsigned short)(buffer[7]&0xFF)<<24 | (unsigned short)(buffer[6]&0xFF)<<16 |  (unsigned short)(buffer[5]&0xFF)<<8 |  (unsigned short)(buffer[4]&0xFF);
-
 			unsigned int Y_hold = (unsigned short)(buffer[11]&0xFF)<<24 | (unsigned short)(buffer[10]&0xFF)<<16 |  (unsigned short)(buffer[9]&0xFF)<<8 |  (unsigned short)(buffer[8]&0xFF);
+			unsigned int Z_hold = (unsigned short)(buffer[15]&0xFF)<<24 | (unsigned short)(buffer[14]&0xFF)<<16 |  (unsigned short)(buffer[13]&0xFF)<<8 |  (unsigned short)(buffer[12]&0xFF);
 
-			unsigned short Yaw_hold = (unsigned short)(buffer[13]&0xFF)<<8 | (unsigned short)(buffer[12]&0xFF);
+			unsigned short Yaw_hold = (unsigned short)(buffer[17]&0xFF)<<8 | (unsigned short)(buffer[16]&0xFF);
 			//playerc_position2d_set_odom(position2d,0,0,0);
 			double X_hold_jaus = ceil(UInt32ToScale(X_hold, -100000, 100000));
 			double Y_hold_jaus = ceil(UInt32ToScale(Y_hold, -100000, 100000));
+			double Z_hold_jaus = ceil(UInt32ToScale(Z_hold, -100000, 100000));
 			float Yaw_hold_jaus= ceil(UInt16ToScale(Yaw_hold, -1*PI, PI));
 		  
 			//Yaw_home_ROS = posyaw_ROS;//angle_add(posyaw_ROS, (-Yaw));
@@ -988,6 +1006,7 @@ void ProcessJausMessage(long handle,unsigned int COP_JausID,unsigned int Message
 			Yaw_home_ROS = posyaw_ROS ;
 			X_home_ROS   = posx_ROS;
 			Y_home_ROS   = posy_ROS;
+			Z_home_ROS   = posz_ROS;
 			// else
 			//convert ros_x,y,yaw to JAUS_X,Y,YAW , with home=0,0,0
 			//offset jaus_home but X,Y,Yaw_hold_jaus
@@ -996,7 +1015,7 @@ void ProcessJausMessage(long handle,unsigned int COP_JausID,unsigned int Message
 			
 			
 			//
-			printf("SetLocalPose to X = %f, Y = %f, Yaw = %f\n", X_hold_jaus , Y_hold_jaus, Yaw_hold_jaus);
+			printf("SetLocalPose to X = %f, Y = %f, Z=%f, Yaw = %f\n", X_hold_jaus , Y_hold_jaus, Z_hold_jaus, Yaw_hold_jaus);
 			//playerc_position2d_set_odom(position2d,X,Y,posyaw_ROS); // now just set to zero
 			
 #ifdef __APPLE__
@@ -1075,8 +1094,9 @@ void ProcessJausMessage(long handle,unsigned int COP_JausID,unsigned int Message
 			{
 			printf("Message: ExecuteList               received\r\n"); 
 			drive = true; //this is a global variable because I am lazy
-			unsigned short speed_hold = ((unsigned short)(buffer[3]&0xFF)<<8 | (unsigned short)(buffer[2]&0xFF));	
+			unsigned short speed_hold = ((unsigned short)(buffer[4]&0xFF)<<8 | (unsigned short)(buffer[3]&0xFF)); // add 1byte PV offset IGVC2013	
 			drive_speed = UInt16ToScale(speed_hold,0,327.67);
+			max_run_time_speed=drive_speed;
 			printf("drive speed = %f m/s\r\n",drive_speed);
 	        
 #ifdef __APPLE__
@@ -1481,9 +1501,11 @@ void Odom_Callback(const nav_msgs::Odometry::ConstPtr& odom)
   tf::poseMsgToTF(odom->pose.pose, pose);
   posx_ROS=odom->pose.pose.position.x;
   posy_ROS=odom->pose.pose.position.y;
+  posz_ROS=odom->pose.pose.position.z;
   posyaw_ROS = tf::getYaw(pose.getRotation());
 
-  translate_ROS_to_JAUS(posx_ROS, posy_ROS, posyaw_ROS, X_home_ROS, Y_home_ROS ,Yaw_home_ROS, &posX_JAUS, &posY_JAUS, &posYaw_JAUS);			
+  translate_ROS_to_JAUS(posx_ROS, posy_ROS, posyaw_ROS, X_home_ROS, Y_home_ROS ,Yaw_home_ROS, &posX_JAUS, &posY_JAUS, &posYaw_JAUS);
+  posz_ROS=-(posz_ROS-Z_home_ROS);			
 
   posSpeed_JAUS  =   odom->twist.twist.linear.x;
   posYawRate_JAUS= -(odom->twist.twist.angular.z); // need to double check this, the rotation direction
@@ -1559,11 +1581,11 @@ gotoxy(1,1);
 	printf("Robot JAUS ID:%08X (%d-%d-%d)              \r\n",Robot_JausID,Robot_JausID>>16,(Robot_JausID&0xFF00)>>8,Robot_JausID&0xFF); // print JAUS_ID
 
 	printf("ROS goal[%i]: [%+6.2f,%+6.2f ]                \r\n",active_elm, X_goal_ROS, Y_goal_ROS);
-	printf("ROS     pose: [%+6.2f,%+6.2f,%+6.1f degree];  \r\n", posx_ROS,posy_ROS,posyaw_ROS*180/PI);
+	printf("ROS     pose: [%+6.2f,%+6.2f,%+6.2f,%+6.1f degree];  \r\n", posx_ROS,posy_ROS,posz_ROS,posyaw_ROS*180/PI);
 	printf("ROS_HOMEpose: [%+6.2f,%+6.2f,%+6.1f degree];  \r\n", X_home_ROS, Y_home_ROS ,Yaw_home_ROS*180/PI);
-	printf("JAUS    pose: [%+6.2f,%+6.2f,%+6.1f degree];  \r\n", posX_JAUS,posY_JAUS,posYaw_JAUS*180/PI);
+	printf("JAUS    pose: [%+6.2f,%+6.2f,%+6.2f,%+6.1f degree];  \r\n", posX_JAUS,posY_JAUS,posZ_JAUS,posYaw_JAUS*180/PI);
 	printf("JAUS   Speed: [%+6.2f m/s, %+6.2f rad/s]      \r\n", posSpeed_JAUS,posYawRate_JAUS);
-	
+	printf("Max Run Time Speed : [%+6.2f m/s]      \r\n", max_run_time_speed);
 //	gotoxy(42,1);
 //	gotoxy(42,2);	
 	printf("Waypoint[0]: JAUS(X,Y)= (%6.2f, %6.2f)\r\n",elm_list[0].posx, elm_list[0].posy);

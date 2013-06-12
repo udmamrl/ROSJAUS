@@ -395,30 +395,16 @@ void SEND_REPORT_IDENTIFICATION(long handle,unsigned int client_id){
   idmsg.QueryType=2; // subsystem
   idmsg.Type= 10001; // Vehicle
 
-/*
-  //strcpy(idmsg.Name,"cerberrus"); // System ID
-  //idmsg.Name = {'C', 'e', 'r','b','e','r','u','s'}; 
-  // Max_IDENTIFICATION_StringLength is 8 , change it in JAUSmessage.h
-  char buff[Max_IDENTIFICATION_StringLength+1] = "JAUS-COP";
-  //char buff[Max_IDENTIFICATION_StringLength] = {'J', 'A', 'U','S','-','C','O','P'};
-  int i = 0;
-  while(buff[i] !=0){ idmsg.Name[i] = buff[i]; i++;}
-  idmsg.StringLength=sizeof(idmsg) - 6;
-*/
+  strcpy(idmsg.Name,"JAUS-COP");
+  idmsg.StringLength=strlen(idmsg.Name);
 
-	strcpy(idmsg.Name,"JAUS-COP"); 
-	idmsg.StringLength=strlen(idmsg.Name);
-
-    // Now we send the message to the COP using Junior.  Recall
-    // that the COP subsystem id is decimal 90 (0x005A hex)
-    //
   //printf("Message: Data Send [%s] Size:%li\n",((char*)&idmsg)+6,sizeof(idmsg));
-	long int msg_size=sizeof(idmsg)-Max_IDENTIFICATION_StringLength+strlen(idmsg.Name);
+long int msg_size=sizeof(idmsg)-Max_IDENTIFICATION_StringLength+strlen(idmsg.Name);
   
   
   
     if (JrSend(handle, client_id, msg_size, (char*)&idmsg) != Ok)
-        printf("Unable to send System ID message.  Need more debug here...\n");
+        printf("Unable to send System ID message. Need more debug here...\n");
     else printf("Sent Report Identification to the client ID\n");
  
 }
@@ -481,11 +467,13 @@ void SEND_REQUEST_CONTROL(long handle,unsigned int client_id){
 //================================================
 void SET_LOCAL_POSE(long handle,unsigned int client_id){
   SET_LOCAL_POSE_MSG rlpmsg;
-  rlpmsg.msg_id = JAUS_ID_SetLocalPose;;
-  rlpmsg.pv = LOCAL_POSE_PVBit_X+LOCAL_POSE_PVBit_Y+LOCAL_POSE_PVBit_Yaw;
+  rlpmsg.msg_id = JAUS_ID_SetLocalPose;
+  // X+Y+X+Yaw bits=0x47
+  rlpmsg.pv = LOCAL_POSE_PVBit_X+LOCAL_POSE_PVBit_Y+LOCAL_POSE_PVBit_Z+LOCAL_POSE_PVBit_Yaw;
+  
   rlpmsg.X = scaleToUInt32(0,-100000,100000);
   rlpmsg.Y = scaleToUInt32(0,-100000,100000);
-  //.rlpmsg.Z = scaleToUInt32(0,-100000,100000);
+  rlpmsg.Z = scaleToUInt32(0,-100000,100000);
   rlpmsg.Yaw = scaleToUInt16(0,-1*PI,PI);
   //rlpmsg.TimeStamp = GetTimeStamp(1);
   /*
@@ -525,7 +513,8 @@ void SEND_RESUME(long handle,unsigned int client_id){
 void QUERY_LCAOL_POSE(long handle,unsigned int client_id){
   QUERY_LCAOL_POSE_MSG qlpmsg;
   qlpmsg.msg_id = 0x2403;
-  qlpmsg.pv = 0x015c;
+  //qlpmsg.pv = 0x015c;
+  qlpmsg.pv = 0x0147; // IGVC2013 change
   //printf("Message: Data Send [%s] Size:%i\n",((char*)&qlpmsg),sizeof(qlpmsg));
     if (JrSend(handle, client_id, sizeof(qlpmsg), (char*)&qlpmsg) != Ok)
         printf("Unable to send System ID message.  Need more debug here...\n");
@@ -552,7 +541,7 @@ void Query_LOCAL_CONTROL(long handle,unsigned int client_id)
 void QUERY_VELOCITY_STATE(long handle,unsigned int client_id){
   QUERY_VELOCITY_STATE_MSG qvmsg;
   qvmsg.msg_id = 0x2404;
-  qvmsg.pv = 0x00;
+  qvmsg.pv = 0x01; // IGVC2013
   //printf("Message: Data Send [%s] Size:%i\n",((char*)&qvmsg),(sizeof(qvmsg)));
     if (JrSend(handle, client_id, sizeof(qvmsg), (char*)&qvmsg) != Ok)
         printf("Unable to send QUERY_VELOCITY_STATE_MSG message.  Need more debug here...\n");
@@ -912,8 +901,9 @@ void send_query_element_count(long handle, unsigned client_id){
 void send_execute_list(long handle, unsigned client_id){
   EXECUTE_LIST msg;
   msg.msg_id = JAUS_ID_ExecuteList;
+  msg.pv=0x01;
   msg.speed = scaleToUInt16(1,0,327.67);  //this is from the competition rule book that a value of 1 will be sent
-  msg.UID_start = 0;  //also from the specs.  There is no element 0, we will actually start at 1
+  msg.UID_start = 0x0001;  // first element
   if (JrSend(handle, client_id,sizeof(msg), (char*)&msg) != Ok)
         printf("Unable to send execute list.  Need more debug here...\n");
     else printf("Sent message execute list to Robot\n");
@@ -967,7 +957,7 @@ void SEND_QUERY_SERVICES(long handle,unsigned int client_id)
   Query_Services rcmsg;
   rcmsg.msg_id=QueryServices;
   rcmsg.Node_ID=1;
-  rcmsg.Component_ID=1;
+  rcmsg.Component_ID=00;
   //printf("Message: Data Send [%s] Size:%li\n",((char*)&rcmsg)+7,sizeof(rcmsg));
     if (JrSend(handle, client_id, sizeof(rcmsg), (char*)&rcmsg) != Ok)
         printf("Unable to send SEND_QUERY_SERVICES message.  Need more debug here...\n");

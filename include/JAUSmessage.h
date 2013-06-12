@@ -4,8 +4,7 @@
 // can't use undefined size array so define the max size here
 // 4 waypoing in IGVC JAUS
 #define Max_ELEMENT_Numbers 4
-// Use 20 characters in Vehicle Name string
-// before send string out recalculate the mesage size base on new string
+//use 20 characters in Vehicle Name string
 #define Max_IDENTIFICATION_StringLength 20
 // Define the message structure.  We have to tell
 // the compiler to pack on 1-byte boundaries to
@@ -143,8 +142,8 @@ typedef struct {
   unsigned short pv;//2,3
   unsigned int   X;//4-7
   unsigned int   Y;//8-11
-  //unsigned int   Z;//12-15
-  //unsigned short Yaw;//16,17
+  unsigned int   Z;//12-15
+  unsigned short Yaw;//16,17
   //put in position rms roll pitch attitude
   unsigned int   TimeStamp;
 } REPORT_LOCAL_POSE_MSG;
@@ -164,7 +163,7 @@ typedef struct {
   unsigned short pv;//2,3
   unsigned int   X;//4-7
   unsigned int   Y;//8-11
-  //unsigned int   Z;//12-15
+  unsigned int   Z;//12-15
   unsigned short Yaw;//16,17
   //put in position rms roll pitch attitude
   //unsigned int   TimeStamp;
@@ -310,6 +309,7 @@ typedef struct {
 }REPORT_ELEMENT_COUNT;
 typedef struct {
 	unsigned short msg_id;
+	unsigned char  pv;
 	unsigned short speed;
 	unsigned short UID_start;
 }EXECUTE_LIST;
