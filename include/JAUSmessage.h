@@ -207,26 +207,32 @@ typedef struct {
 	unsigned char ComponentID; // Vehicle
 	unsigned char InstanceID;
 	unsigned char ListSize;
+
 	char size1;
 	char transport[27];
 	unsigned char MajorVersionNumber1;
 	unsigned char MinorVersionNumber1;
+
 	char size2;	
 	char velocity[41];
 	unsigned char MajorVersionNumber2;
 	unsigned char MinorVersionNumber2;
+
 	char size3;
 	char localpose[37];
 	unsigned char MajorVersionNumber3;
 	unsigned char MinorVersionNumber3;
-	char localwaypoint[41];
+
 	char size4;
+	char localwaypoint[41];
 	unsigned char MajorVersionNumber4;
 	unsigned char MinorVersionNumber4;
+
 	char size5;	
 	char accesscontrol[31];
 	unsigned char MajorVersionNumber5;
 	unsigned char MinorVersionNumber5;
+
 	char size6;
 	char events[24];
 	unsigned char MajorVersionNumber6;
