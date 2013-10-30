@@ -1,8 +1,18 @@
 <launch>
   <node pkg="ROSJAUS" type="ROSJAUS" name="IGVC_JAUS" output="screen">
   <param name="JAUS_COP_ID"      value="42"/>
-  <param name="Robot_JAUS_ID"    value="123"/>
+  <param name="Robot_JAUS_ID"    value="110"/>
+  <param name="Robot_Name"       value="REVENANT"/>
+ 
   <param name="distance_epsilon" value="0.5"/>
+  
+	<!--  Use move_base_max_acc to adjust you want to stop at waypoint or fly by  -->
+  <param name="move_base_max_acc" value="6"/>
+  <param name="move_base_max_acc_last_waypoint" value="2"/>
+  <param name="drive_speed_scale" value="1.02"/>
+  <param name="Yaw_offset" value="0.0"/>
+
+
   <param name="ROS_loop_rate_Hz" value="20."/>
   </node>
  </launch>
