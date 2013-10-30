@@ -496,7 +496,7 @@ void SEND_REPORT_SERVICES(long handle,unsigned int client_id)
 	rcmsg.MajorVersionNumber6=1;
 	rcmsg.MinorVersionNumber6=0;
 	printf("size1 = %i, size2 = %i, size3 = %i, size4 = %i, size5 = %i, size6 = %i\n", rcmsg.size1, rcmsg.size2, rcmsg.size3, rcmsg.size4, rcmsg.size5, rcmsg.size6);
-	for(int i = 0; i< (sizeof(Events)-1); i++){  //subtract one to ignore the null terminator in the loop
+	for(int i = 0; i< (sizeof(Transport)-1); i++){  //subtract one to ignore the null terminator in the loop
 	rcmsg.transport[i] = Transport[i];
 	}
 
