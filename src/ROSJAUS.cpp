@@ -556,8 +556,8 @@ void SEND_REPORT_SERVICES(long handle,unsigned int client_id)
 	//rcmsg.size5 = sizeof(AccessControl)-1;
 	rcmsg.MajorVersionNumber5=1;
 	rcmsg.MinorVersionNumber5=0;
-	rcmsg.size6 = sizeof(AccessControl)-1;
-	//rcmsg.size6 = sizeof(AccessControl)-1;
+	rcmsg.size6 = sizeof(Events)-1;
+	//rcmsg.size6 = sizeof(Events)-1;
 	rcmsg.MajorVersionNumber6=1;
 	rcmsg.MinorVersionNumber6=0;
 	printf("size1 = %i, size2 = %i, size3 = %i, size4 = %i, size5 = %i, size6 = %i\n", rcmsg.size1, rcmsg.size2, rcmsg.size3, rcmsg.size4, rcmsg.size5, rcmsg.size6);
