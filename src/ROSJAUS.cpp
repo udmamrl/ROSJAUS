@@ -1370,7 +1370,7 @@ void SEND_REPORT_ELEMENT_LIST(int list_ind, long handle, unsigned int client_id,
 		elm++;
 	printf("element %i put in list\n", msg.UID[i]);
 		}
-	if (JrSend(handle, client_id, (sizeof(msg) + list_ind*2), (char*)&msg) != Ok)
+	if (JrSend(handle, client_id, (sizeof(msg)), (char*)&msg) != Ok)
         printf("Unable to send System ID message.  Need more debug here...\n");
 		else printf("Sent message report element list\n");
 	
